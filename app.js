@@ -1,13 +1,14 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 let score = document.getElementById("scoreNum").innerHTML;
+let scoreOp = document.getElementById("scoreOpNum").innerHTML;
 
 let circle = {
 	x: 100,
 	y: 100,
 	size: 15,
 	dx: 5,
-	dy: 5,
+	dy: 5
 };
 
 let player = {
@@ -17,22 +18,26 @@ let player = {
 	height: 15,
 	speed: 10,
 	dx: 0,
-	dy: 0,
+	dy: 0
 };
 
-let blocks = {
-	x: 13,
-	y: 10,
-	width: 53,
+let opponent = {
+	x: 200,
+	y: 5,
+	width: 100,
 	height: 15,
-	gap: 5,
-	countX: 10,
-	countY: 3
+	speed: 6
 };
+
 
 function updateScore() {
-	score = (parseInt(score) + 1).toString();
+	score = (parseInt(score) + 10).toString();
 	document.getElementById("scoreNum").innerHTML = score;
+}
+
+function updateOpponentScore() {
+	scoreOp = (parseInt(scoreOp) + 10).toString();
+	document.getElementById("scoreOpNum").innerHTML = scoreOp;
 }
 
 
@@ -41,54 +46,17 @@ function drawPlayer() {
 	ctx.rect(player.x, player.y, player.width, player.height);
 	ctx.fillStyle = "red";
 	ctx.fill();
+	ctx.closePath();
 }
 
-var allBlocks = []
-
-function blockSetup() {
-	distX = 0;
-	distY = 0;
-	for(j=1;j<=blocks.countY;j=j+1) {
-		for(i=1;i<=blocks.countX;i=i+1) {
-			allBlocks.push({
-				x: blocks.x + distX,
-				y: blocks.y + distY,
-				status: 1
-			});
-			distX += blocks.width + blocks.gap;
-		}
-		distX = 0;
-		distY += blocks.height + blocks.gap;
-	}	
-	// console.log(allBlocks)
-}
-blockSetup();
-
-
-function drawBlocks() {
-	allBlocks.forEach((block) => {
-		if (!block.status) return;
-		ctx.beginPath();
-		ctx.rect(block.x, block.y, blocks.width, blocks.height);
-		ctx.fillStyle = "#0bd600";
-		ctx.fill();
-		ctx.closePath();
-	});
+function drawOpponent() {
+	ctx.beginPath();
+	ctx.rect(opponent.x, opponent.y, opponent.width, opponent.height);
+	ctx.fillStyle = "green";
+	ctx.fill();
+	ctx.closePath();
 }
 
-function collisionDetection() {
-	allBlocks.forEach((b) => {
-		if (!b.status) return;
-
-		var inBricksColumn = circle.x > b.x && circle.x < b.x + blocks.width;
-		var inBricksRow = circle.y > b.y && circle.y < b.y + blocks.height;
-		if (inBricksColumn && inBricksRow) {
-			circle.dy *= -1;
-			b.status = 0;
-			updateScore();
-		}
-	});
-}
 
 function drawCircle() {
 	ctx.beginPath();
@@ -103,13 +71,23 @@ function newPos() {
 	detectWalls();
 }
 
+function opponentMovement() {
+	opponent.x += opponent.speed;
+
+	if (opponent.x < 0) {
+		opponent.speed *= -1;
+	}
+	if (opponent.x + opponent.width > canvas.width) {
+		opponent.speed *= -1;
+	}
+}
+
+
 function detectWalls() {
-	// Left wall
+	// player
 	if (player.x < 0) {
 		player.x = 0;
 	}
-
-	// Right Wall
 	if (player.x + player.width > canvas.width) {
 		player.x = canvas.width - player.width;
 	}
@@ -134,24 +112,22 @@ function wallDetection() {
 
 function update() {
 	clear();
-	drawBlocks();
 	drawCircle();
 	drawPlayer();
+	drawOpponent();
 	newPos();
-	collisionDetection();
 
 	// change position
 	circle.x += circle.dx;
 	circle.y += circle.dy;
 
 	wallDetection();
+	opponentMovement();
 
 	// score reset condition
 	if (circle.y + circle.size > canvas.height) {
-		clickedOnce = true;
-		return;
-		// score = "0";
-		// document.getElementById("scoreNum").innerHTML = score;
+		score = "0";
+		document.getElementById("scoreNum").innerHTML = score;
 	}
 
 	// Detect collision between player and circle
@@ -161,13 +137,32 @@ function update() {
 		circle.x - circle.size < player.x + player.width
 	) {	
 		circle.dy *= -1;
+		updateScore();
 	}
 
-    if(score === (blocks.countX * blocks.countY).toString()){
+
+	// Detect collision between opponent and circle
+	if (
+		circle.y - circle.size === opponent.y + opponent.height &&
+		circle.x + circle.size > opponent.x &&
+		circle.x - circle.size < opponent.x + opponent.width
+	) {	
+		circle.dy *= -1;
+		updateOpponentScore();
+	}
+
+	//Winner check
+
+	if(score === "100"){
         alert("Congratulations!!! You Won.");
 		clickedOnce = true;
         return;
     }
+	if (scoreOp === "100"){
+		alert("Oops!!! Computer Won.");
+		clickedOnce = true;
+        return;
+	}
 
 	requestAnimationFrame(update);
 }
